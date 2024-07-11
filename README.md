@@ -1,73 +1,120 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="200" alt="Nest Logo" /></a>
-</p>
+# MathSolver Backend
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+The MathSolver Backend is a Node.js application built with NestJS that uses OpenAI's GPT-3.5-turbo model to solve mathematical problems and Pinecone's vector database to store and retrieve similar questions and their solutions.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Table of Contents
 
-## Description
-
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Usage](#usage)
+- [API Endpoints](#api-endpoints)
+- [Error Handling](#error-handling)
+- [License](#license)
 
 ## Installation
 
-```bash
-$ npm install
+To get started with the MathSolver Backend, follow these steps:
+
+1. Clone the repository:
+
+    ```bash
+    git clone https://github.com/your-username/mathsolver-backend.git
+    cd mathsolver-backend
+    ```
+
+2. Install the dependencies:
+
+    ```bash
+    npm install
+    ```
+
+3. Build the application:
+
+    ```bash
+    npm run build
+    ```
+
+4. Start the application:
+
+    ```bash
+    npm run start
+    ```
+
+## Configuration
+
+The MathSolver Backend requires configuration for API keys. Create a `.env` file in the root directory of your project and add the following environment variables:
+
+```env
+OPENAI_API_KEY=your_openai_api_key
+PINECONE_API_KEY=your_pinecone_api_key
 ```
 
-## Running the app
+## Usage
 
-```bash
-# development
-$ npm run start
+After starting the application, the server will be running on `http://localhost:3000`. You can now interact with the API using HTTP requests.
 
-# watch mode
-$ npm run start:dev
+## API Endpoints
 
-# production mode
-$ npm run start:prod
+### Solve a Math Question
+
+- **Endpoint**: `/solve`
+- **Method**: `POST`
+- **Description**: Solves a mathematical question and returns the solution in LaTeX format.
+
+- **Request Body**:
+    ```json
+    {
+      "question": "string"
+    }
+    ```
+
+- **Response**:
+    ```json
+    {
+      "solution": "string"
+    }
+    ```
+
+### Get Similar Questions
+
+- **Endpoint**: `/similar`
+- **Method**: `POST`
+- **Description**: Retrieves similar questions and their solutions from the Pinecone database.
+
+- **Request Body**:
+    ```json
+    {
+      "question": "string"
+    }
+    ```
+
+- **Response**:
+    ```json
+    [
+      {
+        "question": "string",
+        "solution": "string"
+      },
+      ...
+    ]
+    ```
+
+## Error Handling
+
+The MathSolver Backend uses HTTP status codes to indicate the success or failure of an API request. The following are the possible error responses:
+
+- **400 Bad Request**: The request is malformed or missing required parameters.
+- **500 Internal Server Error**: An unexpected error occurred on the server.
+
+When an error occurs, the response will include a message describing the error:
+
+```json
+{
+  "statusCode": 500,
+  "message": "Failed to solve the question: error message"
+}
 ```
-
-## Test
-
-```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
-```
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://kamilmysliwiec.com)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
 
 ## License
 
-Nest is [MIT licensed](LICENSE).
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
