@@ -18,8 +18,8 @@ To get started with the MathSolver Backend, follow these steps:
 1. Clone the repository:
 
     ```bash
-    git clone https://github.com/your-username/mathsolver-backend.git
-    cd mathsolver-backend
+    git clone https://github.com/AdebisiJoe/math-solver-backend.git
+    cd math-solver-backend
     ```
 
 2. Install the dependencies:
