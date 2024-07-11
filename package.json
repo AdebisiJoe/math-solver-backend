@@ -21,9 +21,10 @@
   },
   "dependencies": {
     "@nestjs/common": "^9.0.0",
+    "@nestjs/config": "^3.2.3",
     "@nestjs/core": "^9.0.0",
     "@nestjs/mapped-types": "*",
-    "@nestjs/platform-express": "^9.0.0",
+    "@nestjs/platform-express": "^9.4.3",
     "@pinecone-database/pinecone": "^2.2.2",
     "openai": "^4.52.5",
     "reflect-metadata": "^0.1.13",
