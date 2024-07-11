@@ -1,6 +1,4 @@
 import { Controller, Post, Body, Get, Query } from '@nestjs/common';
-import OpenAI from 'openai';
-import { Pinecone } from '@pinecone-database/pinecone';
 import { MathSolverService } from './math-solver.service';
 
 @Controller('math')
