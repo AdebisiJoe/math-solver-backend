@@ -34,7 +34,7 @@ export class MathSolverService {
   async solveQuestion(question: string): Promise<{ solution: string }> {
     try {
       const completion = await this.openai.chat.completions.create({
-        model: 'gpt-3.5-turbo',
+        model: 'gpt-4o-mini',
         messages: [{ role: 'user', content: `Solve the following math problem step by step give me the answer using LaTeX: ${question}` }],
         max_tokens: 600, 
         temperature: 0.2, 
