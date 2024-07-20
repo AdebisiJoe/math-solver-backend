@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { MathSolverController } from './math-solver.controller';
-import { MathSolverService } from './math-solver.service';
+import { MathSolverService } from './MathSolverPineconeService.service';
 
 describe('MathSolverController', () => {
   let controller: MathSolverController;

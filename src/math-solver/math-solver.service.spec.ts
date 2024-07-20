@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { MathSolverService } from './math-solver.service';
+import { MathSolverService } from './MathSolverPineconeService.service';
 
 describe('MathSolverService', () => {
   let service: MathSolverService;

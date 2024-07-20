@@ -1,9 +1,13 @@
 import { Module } from '@nestjs/common';
-import { MathSolverService } from './math-solver.service';
+import { MathSolverPineconeService } from './MathSolverPineconeService.service';
+import { MathSolverNeo4jService } from './MathSolverNeo4jService.service';
 import { MathSolverController } from './math-solver.controller';
 
 @Module({
   controllers: [MathSolverController],
-  providers: [MathSolverService]
+  providers: [
+    MathSolverPineconeService,
+    MathSolverNeo4jService
+  ]
 })
-export class MathSolverModule {}
+export class MathSolverModule { }

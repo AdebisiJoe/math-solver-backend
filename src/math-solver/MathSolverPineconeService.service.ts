@@ -4,7 +4,7 @@ import OpenAI from 'openai';
 import { Pinecone } from '@pinecone-database/pinecone';
 
 @Injectable()
-export class MathSolverService {
+export class MathSolverPineconeService {
   private openai: OpenAI;
   private pinecone: Pinecone;
 
