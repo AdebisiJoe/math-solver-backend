@@ -105,7 +105,7 @@ export class MathSolverNeo4jService implements OnModuleInit, OnModuleDestroy {
     const session = this.neo4jDriver.session();
     try {
       //const embedding = await this.createEmbedding(question);
-  
+
       const result = await session.run(
         `
         MATCH (q:Question {question: $question})
@@ -115,7 +115,7 @@ export class MathSolverNeo4jService implements OnModuleInit, OnModuleDestroy {
         `,
         { question }
       );
-  
+
       this.logger.log(`Retrieved similar questions for: ${question}`);
       return result.records.map(record => ({
         question: record.get('question'),
@@ -129,7 +129,7 @@ export class MathSolverNeo4jService implements OnModuleInit, OnModuleDestroy {
       await session.close();
     }
   }
-  
+
 
   private async createEmbedding(text: string): Promise<number[]> {
     try {
@@ -147,7 +147,7 @@ export class MathSolverNeo4jService implements OnModuleInit, OnModuleDestroy {
 
   private async getQuestionType(question: string): Promise<string> {
     const predefinedTypes = [
-      "algebra", "calculus", "geometry", "trigonometry", "statistics", "number theory", "combinatorics", "probability", "linear algebra",
+      "algebra", "calculus", "linear algebra", "geometry", "trigonometry", "statistics", "number theory", "combinatorics", "probability", "linear algebra",
       "differential equations", "real analysis", "complex analysis", "topology",
       "discrete mathematics", "set theory", "mathematical logic", "numerical analysis",
       "optimization", "abstract algebra", "game theory", "graph theory", "cryptography",
@@ -158,9 +158,9 @@ export class MathSolverNeo4jService implements OnModuleInit, OnModuleDestroy {
       "stochastic processes", "quantum mechanics", "relativity", "fluid dynamics",
       "nonlinear dynamics", "chaos theory"
     ];
-  
+
     const typePrompt = `Given the following math problem, identify its type from the predefined list (${predefinedTypes.join(', ')}): ${question}`;
-  
+
     try {
       const completion = await this.openai.chat.completions.create({
         model: 'gpt-4o-mini',
@@ -168,20 +168,25 @@ export class MathSolverNeo4jService implements OnModuleInit, OnModuleDestroy {
         max_tokens: 1000,
         temperature: 1.0,
       });
-  
-      const questionType = completion.choices[0].message.content.trim().toLowerCase();
-      if (predefinedTypes.includes(questionType)) {
-        return questionType;
-      } else {
-        // Fallback type for unrecognized questions
-        return completion.choices[0].message.content;
-      }
+
+      const response = completion.choices[0].message.content.trim().toLowerCase();
+      let questionType = "arithmetic"; // Fallback type
+
+      predefinedTypes.some(type => {
+        if (response.includes(type)) {
+          questionType = type;
+          return true;
+        }
+        return false;
+      });
+
+      return questionType;
     } catch (error) {
       this.logger.error(`Failed to determine question type: ${error.message}`);
       throw new HttpException(`Failed to determine question type: ${error.message}`, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
-  
+
 
   private async storeQuestionAndSolution(session: Session, question: string, solution: string, questionType: string, embedding: number[]) {
     try {
