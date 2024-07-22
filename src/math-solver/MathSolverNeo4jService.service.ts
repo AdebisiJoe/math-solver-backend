@@ -147,8 +147,7 @@ export class MathSolverNeo4jService implements OnModuleInit, OnModuleDestroy {
 
   private async getQuestionType(question: string): Promise<string> {
     const predefinedTypes = [
-      "algebra", "calculus", "geometry", "trigonometry", "statistics",
-      "arithmetic", "number theory", "combinatorics", "probability", "linear algebra",
+      "algebra", "calculus", "geometry", "trigonometry", "statistics", "number theory", "combinatorics", "probability", "linear algebra",
       "differential equations", "real analysis", "complex analysis", "topology",
       "discrete mathematics", "set theory", "mathematical logic", "numerical analysis",
       "optimization", "abstract algebra", "game theory", "graph theory", "cryptography",
@@ -175,7 +174,7 @@ export class MathSolverNeo4jService implements OnModuleInit, OnModuleDestroy {
         return questionType;
       } else {
         // Fallback type for unrecognized questions
-        return "arithmetic";
+        return completion.choices[0].message.content;
       }
     } catch (error) {
       this.logger.error(`Failed to determine question type: ${error.message}`);
