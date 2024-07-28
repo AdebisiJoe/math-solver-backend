@@ -81,7 +81,7 @@ export class MathSolverNeo4jService implements OnModuleInit, OnModuleDestroy {
       const completion = await this.openai.chat.completions.create({
         model: 'gpt-4o-mini',
         messages: [{ role: 'user', content: `Solve the following math problem step by step give me the answer using LaTeX: ${question}` }],
-        max_tokens: 600,
+        max_tokens: 1500,
         temperature: 0.2,
         top_p: 0.95,
       });
