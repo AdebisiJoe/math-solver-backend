@@ -197,9 +197,9 @@ export class MathSolverNeo4jService implements OnModuleInit, OnModuleDestroy {
         temperature: 0.2,
         top_p: 0.95,
       });
-  
+
       const openAIQuestionASCIIMath = questionCompletion.choices[0].message.content.trim();
-  
+
       // Step 2: Generate ASCIIMath for the solution using OpenAI
       const solutionPrompt = `Convert the following solution to ASCIIMath:\n\nSolution: ${solution}`;
       const solutionCompletion = await this.openai.chat.completions.create({
@@ -209,17 +209,17 @@ export class MathSolverNeo4jService implements OnModuleInit, OnModuleDestroy {
         temperature: 0.2,
         top_p: 0.95,
       });
-  
+
       const openAISolutionASCIIMath = solutionCompletion.choices[0].message.content.trim();
-  
+
       // Step 3: Fallback to manual conversion if OpenAI response is inadequate
       const manualQuestionASCIIMath = this.convertMixedContentToASCIIMath(question);
       const manualSolutionASCIIMath = this.convertMixedContentToASCIIMath(solution);
-  
+
       // Choose the most reliable source (you could use some logic to determine this, or simply store both)
       const questionASCIIMath = openAIQuestionASCIIMath || manualQuestionASCIIMath;
       const solutionASCIIMath = openAISolutionASCIIMath || manualSolutionASCIIMath;
-  
+
       // Step 4: Store the question, solution, embeddings, and ASCIIMath versions in Neo4j
       await session.run(
         `
@@ -235,14 +235,14 @@ export class MathSolverNeo4jService implements OnModuleInit, OnModuleDestroy {
         `,
         { question, solution, questionType, embedding, questionASCIIMath, solutionASCIIMath }
       );
-  
+
       this.logger.log(`Stored question and solution with ASCIIMath: ${question}`);
     } catch (error) {
       this.logger.error(`Failed to store question and solution: ${error.message}`);
       throw new HttpException(`Failed to store question and solution: ${error.message}`, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
-  
+
 
   private convertMixedContentToASCIIMath(content: string): string {
     const improvedLatexRegex = /(?:\\[a-zA-Z]+(?:\[.*?\])*(?:{(?:[^{}\\]|\\.)*})*|\\\(.*?\\\)|\\\[.*?\\\]|\\[a-zA-Z]+|[a-zA-Z0-9]+)/g;
@@ -318,12 +318,12 @@ export class MathSolverNeo4jService implements OnModuleInit, OnModuleDestroy {
         RETURN q.question AS question, q.solution AS solution, ID(q) AS id
         `
       );
-  
+
       for (const record of result.records) {
         const id = record.get('id');
         const question = record.get('question');
         const solution = record.get('solution');
-  
+
         // Step 1: Convert question to ASCIIMath using OpenAI
         const questionPrompt = `Convert the following question to ASCIIMath:\n\nQuestion: ${question}`;
         const questionCompletion = await this.openai.chat.completions.create({
@@ -334,7 +334,7 @@ export class MathSolverNeo4jService implements OnModuleInit, OnModuleDestroy {
           top_p: 0.95,
         });
         const openAIQuestionASCIIMath = questionCompletion.choices[0].message.content.trim();
-  
+
         // Step 2: Convert solution to ASCIIMath using OpenAI
         const solutionPrompt = `Convert the following solution to ASCIIMath:\n\nSolution: ${solution}`;
         const solutionCompletion = await this.openai.chat.completions.create({
@@ -345,14 +345,10 @@ export class MathSolverNeo4jService implements OnModuleInit, OnModuleDestroy {
           top_p: 0.95,
         });
         const openAISolutionASCIIMath = solutionCompletion.choices[0].message.content.trim();
-  
-        // Step 3: Fallback to manual conversion if OpenAI response is inadequate
-        const manualQuestionASCIIMath = this.convertMixedContentToASCIIMath(question);
-        const manualSolutionASCIIMath = this.convertMixedContentToASCIIMath(solution);
-  
-        const questionASCIIMath = openAIQuestionASCIIMath || manualQuestionASCIIMath;
-        const solutionASCIIMath = openAISolutionASCIIMath || manualSolutionASCIIMath;
-  
+
+        const questionASCIIMath = openAIQuestionASCIIMath;
+        const solutionASCIIMath = openAISolutionASCIIMath;
+
         // Step 4: Update the Neo4j database with the ASCIIMath properties
         await session.run(
           `
@@ -363,10 +359,10 @@ export class MathSolverNeo4jService implements OnModuleInit, OnModuleDestroy {
           `,
           { id, questionASCIIMath, solutionASCIIMath }
         );
-  
+
         this.logger.log(`Updated ASCIIMath properties for question with ID: ${id}`);
       }
-  
+
       this.logger.log('Finished adding ASCIIMath properties to all questions');
     } catch (error) {
       this.logger.error(`Failed to add ASCIIMath properties: ${error.message}`);
@@ -375,5 +371,5 @@ export class MathSolverNeo4jService implements OnModuleInit, OnModuleDestroy {
       await session.close();
     }
   }
-  
+
 }
