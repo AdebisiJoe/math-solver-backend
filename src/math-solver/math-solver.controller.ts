@@ -1,4 +1,4 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import { Controller, Post, Body, Get } from '@nestjs/common';
 import { MathSolverPineconeService } from './MathSolverPineconeService.service';
 import { MathSolverNeo4jService } from './MathSolverNeo4jService.service';
 
@@ -31,5 +31,10 @@ export class MathSolverController {
     } else {
       return await this.mathSolverPineconeService.getSimilarQuestions(question);
     }
+  }
+
+  @Get('/converttoasci')
+  async convertToAsciMath() {
+    return await this.mathSolverNeo4jService.addASCIIMathProperties();
   }
 }

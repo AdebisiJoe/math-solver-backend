@@ -3,12 +3,14 @@ import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
 import neo4j, { Driver, Session } from 'neo4j-driver';
 import { Logger } from '@nestjs/common';
+import * as math from 'mathjs';
 
 @Injectable()
 export class MathSolverNeo4jService implements OnModuleInit, OnModuleDestroy {
   private openai: OpenAI;
   private neo4jDriver: Driver;
   private readonly logger = new Logger(MathSolverNeo4jService.name);
+  private conversionCache: Map<string, string> = new Map(); // Cache for LaTeX to ASCIIMath conversions
 
   constructor(private configService: ConfigService) { }
 
@@ -104,8 +106,6 @@ export class MathSolverNeo4jService implements OnModuleInit, OnModuleDestroy {
   async getSimilarQuestions(question: string) {
     const session = this.neo4jDriver.session();
     try {
-      //const embedding = await this.createEmbedding(question);
-
       const result = await session.run(
         `
         MATCH (q:Question {question: $question})
@@ -129,7 +129,6 @@ export class MathSolverNeo4jService implements OnModuleInit, OnModuleDestroy {
       await session.close();
     }
   }
-
 
   private async createEmbedding(text: string): Promise<number[]> {
     try {
@@ -187,21 +186,166 @@ export class MathSolverNeo4jService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-
   private async storeQuestionAndSolution(session: Session, question: string, solution: string, questionType: string, embedding: number[]) {
     try {
+      // Step 1: Generate ASCIIMath for the question using OpenAI
+      const questionPrompt = `Convert the following question to ASCIIMath:\n\nQuestion: ${question}`;
+      const questionCompletion = await this.openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [{ role: 'user', content: questionPrompt }],
+        max_tokens: 500,
+        temperature: 0.2,
+        top_p: 0.95,
+      });
+  
+      const openAIQuestionASCIIMath = questionCompletion.choices[0].message.content.trim();
+  
+      // Step 2: Generate ASCIIMath for the solution using OpenAI
+      const solutionPrompt = `Convert the following solution to ASCIIMath:\n\nSolution: ${solution}`;
+      const solutionCompletion = await this.openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [{ role: 'user', content: solutionPrompt }],
+        max_tokens: 1000,
+        temperature: 0.2,
+        top_p: 0.95,
+      });
+  
+      const openAISolutionASCIIMath = solutionCompletion.choices[0].message.content.trim();
+  
+      // Step 3: Fallback to manual conversion if OpenAI response is inadequate
+      const manualQuestionASCIIMath = this.convertMixedContentToASCIIMath(question);
+      const manualSolutionASCIIMath = this.convertMixedContentToASCIIMath(solution);
+  
+      // Choose the most reliable source (you could use some logic to determine this, or simply store both)
+      const questionASCIIMath = openAIQuestionASCIIMath || manualQuestionASCIIMath;
+      const solutionASCIIMath = openAISolutionASCIIMath || manualSolutionASCIIMath;
+  
+      // Step 4: Store the question, solution, embeddings, and ASCIIMath versions in Neo4j
       await session.run(
         `
         MERGE (qt:QuestionType {name: $questionType})
-        CREATE (q:Question {question: $question, solution: $solution, embedding: $embedding})
+        CREATE (q:Question {
+          question: $question,
+          solution: $solution,
+          embedding: $embedding,
+          questionASCIIMath: $questionASCIIMath,
+          solutionASCIIMath: $solutionASCIIMath
+        })
         MERGE (q)-[:OF_TYPE]->(qt)
         `,
-        { question, solution, questionType, embedding }
+        { question, solution, questionType, embedding, questionASCIIMath, solutionASCIIMath }
       );
-      this.logger.log(`Stored question and solution: ${question}`);
+  
+      this.logger.log(`Stored question and solution with ASCIIMath: ${question}`);
     } catch (error) {
       this.logger.error(`Failed to store question and solution: ${error.message}`);
       throw new HttpException(`Failed to store question and solution: ${error.message}`, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+  
+
+  private convertMixedContentToASCIIMath(content: string): string {
+    const improvedLatexRegex = /(?:\\[a-zA-Z]+(?:\[.*?\])*(?:{(?:[^{}\\]|\\.)*})*|\\\(.*?\\\)|\\\[.*?\\\]|\\[a-zA-Z]+|[a-zA-Z0-9]+)/g;
+
+    return content.replace(improvedLatexRegex, (match) => {
+      // Remove the outer \( \) or \[ \] if present
+      let latex = match.replace(/^\\\(|\\\)$|\\\[|\\\]$/g, '');
+
+      // Check cache first
+      if (this.conversionCache.has(latex)) {
+        return this.conversionCache.get(latex)!;
+      }
+
+      const asciimath = this.convertLaTeXToASCIIMath(latex);
+      this.conversionCache.set(latex, asciimath); // Cache the result
+      return asciimath;
+    });
+  }
+
+  private convertLaTeXToASCIIMath(latex: string): string {
+    latex = latex.replace(/\\left/g, '')
+      .replace(/\\right/g, '')
+      .replace(/\\[, ]/g, ' ')
+      .replace(/\\frac{([^{}]+)}{([^{}]+)}/g, '($1)/($2)')
+      .replace(/\\int_{([^{}]+)}^{([^{}]+)}/g, 'int_$1^$2')
+      .replace(/\\sum_{([^{}]+)}^{([^{}]+)}/g, 'sum_$1^$2')
+      .replace(/\\prod_{([^{}]+)}^{([^{}]+)}/g, 'prod_$1^$2')
+      .replace(/\\lim_{([^{}]+)\\to([^{}]+)}/g, 'lim_($1->$2)')
+      .replace(/\\infty/g, 'oo')
+      .replace(/\\partial/g, 'del')
+      .replace(/\\sqrt{([^{}]+)}/g, 'sqrt($1)'); // Added support for square root
+
+    try {
+      const node = math.parse(latex);
+      return node.toString({ handler: this.toASCIIMath });
+    } catch (error) {
+      this.logger.error('Error parsing LaTeX:', error);
+      return latex; // Return original if parsing fails
+    }
+  }
+
+  private toASCIIMath(node: any): string {
+    if (node.type === 'OperatorNode') {
+      if (node.fn === 'divide') {
+        return `(${this.toASCIIMath(node.args[0])})/(${this.toASCIIMath(node.args[1])})`;
+      }
+      if (node.fn === 'multiply') {
+        return node.implicit ? `${this.toASCIIMath(node.args[0])} ${this.toASCIIMath(node.args[1])}` :
+          `${this.toASCIIMath(node.args[0])}*${this.toASCIIMath(node.args[1])}`;
+      }
+      if (node.fn === 'pow') {
+        return `${this.toASCIIMath(node.args[0])}^(${this.toASCIIMath(node.args[1])})`;
+      }
+    }
+    if (node.type === 'FunctionNode') {
+      if (node.name === 'int') {
+        return `int ${this.toASCIIMath(node.args[0])} d${this.toASCIIMath(node.args[1])}`;
+      }
+      if (['sin', 'cos', 'tan', 'log', 'ln'].includes(node.name)) {
+        return `${node.name}(${this.toASCIIMath(node.args[0])})`;
+      }
+    }
+    // Default to node's own toString method
+    return node.toString();
+  }
+
+  async addASCIIMathProperties() {
+    const session = this.neo4jDriver.session();
+    try {
+      const result = await session.run(
+        `
+        MATCH (q:Question)
+        RETURN q.question AS question, q.solution AS solution, ID(q) AS id
+        `
+      );
+
+      for (const record of result.records) {
+        const id = record.get('id');
+        const question = record.get('question');
+        const solution = record.get('solution');
+
+        const questionASCIIMath = this.convertMixedContentToASCIIMath(question);
+        const solutionASCIIMath = this.convertMixedContentToASCIIMath(solution);
+
+        await session.run(
+          `
+          MATCH (q:Question)
+          WHERE ID(q) = $id
+          SET q.questionASCIIMath = $questionASCIIMath,
+              q.solutionASCIIMath = $solutionASCIIMath
+          `,
+          { id, questionASCIIMath, solutionASCIIMath }
+        );
+
+        this.logger.log(`Updated ASCIIMath properties for question with ID: ${id}`);
+      }
+
+      this.logger.log('Finished adding ASCIIMath properties to all questions');
+    } catch (error) {
+      this.logger.error(`Failed to add ASCIIMath properties: ${error.message}`);
+      throw new HttpException(`Failed to add ASCIIMath properties: ${error.message}`, HttpStatus.INTERNAL_SERVER_ERROR);
+    } finally {
+      await session.close();
     }
   }
 }
