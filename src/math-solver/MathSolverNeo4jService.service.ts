@@ -372,4 +372,34 @@ export class MathSolverNeo4jService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  async findSimilarQuestions(question: string): Promise<Array<{ question: string, solution: string, score: number }>> {
+    const session = this.neo4jDriver.session();
+    try {
+      // Step 1: Generate the embedding for the new question using OpenAI
+      const embedding = await this.createEmbedding(question);
+
+      // Step 2: Use the generated embedding to find similar questions in Neo4j
+      const result = await session.run(
+        `
+        CALL db.index.vector.queryNodes('embeddingIndex', 5, $embedding) 
+        YIELD node, score
+        RETURN node.question AS question, node.solution AS solution, score
+        `,
+        { embedding }
+      );
+
+      // Step 3: Format and return the results
+      return result.records.map(record => ({
+        question: record.get('question'),
+        solution: record.get('solution'),
+        score: record.get('score')
+      }));
+    } catch (error) {
+      this.logger.error(`Failed to find similar questions: ${error.message}`);
+      throw new HttpException(`Failed to find similar questions: ${error.message}`, HttpStatus.INTERNAL_SERVER_ERROR);
+    } finally {
+      await session.close();
+    }
+  }
+
 }

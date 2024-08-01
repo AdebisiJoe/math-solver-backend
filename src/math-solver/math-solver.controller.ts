@@ -33,6 +33,13 @@ export class MathSolverController {
     }
   }
 
+  @Post('find-similar')
+  async findSimilarQuestions(
+    @Body('question') question: string
+  ) {
+    return await this.mathSolverNeo4jService.findSimilarQuestions(question);
+  }
+
   @Get('/converttoasci')
   async convertToAsciMath() {
     return await this.mathSolverNeo4jService.addASCIIMathProperties();
