@@ -325,7 +325,7 @@ export class MathSolverNeo4jService implements OnModuleInit, OnModuleDestroy {
         const solution = record.get('solution');
 
         // Step 1: Convert question to ASCIIMath using OpenAI
-        const questionPrompt = `Convert the following question to ASCIIMath:\n\nQuestion: ${question}`;
+        const questionPrompt = `Convert the following question to ASCIIMath, just convert dont add any extra text or explanation if its good the way it is give me that:\n\nQuestion: ${question}`;
         const questionCompletion = await this.openai.chat.completions.create({
           model: 'gpt-4o-mini',
           messages: [{ role: 'user', content: questionPrompt }],
@@ -336,7 +336,7 @@ export class MathSolverNeo4jService implements OnModuleInit, OnModuleDestroy {
         const openAIQuestionASCIIMath = questionCompletion.choices[0].message.content.trim();
 
         // Step 2: Convert solution to ASCIIMath using OpenAI
-        const solutionPrompt = `Convert the following solution to ASCIIMath:\n\nSolution: ${solution}`;
+        const solutionPrompt = `Convert the following solution to ASCIIMath , just convert dont add any extra text or explanation if its good the way it is give me that:\n\nSolution: ${solution}`;
         const solutionCompletion = await this.openai.chat.completions.create({
           model: 'gpt-4o-mini',
           messages: [{ role: 'user', content: solutionPrompt }],
